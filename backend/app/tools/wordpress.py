@@ -217,8 +217,13 @@ async def wp_list_pages(wp_url: str = "", wp_user: str = "", wp_password: str = 
 async def wp_upload_media(wp_url: str = "", wp_user: str = "", wp_password: str = "",
                           media_url: str = "", filename: str = "", alt_text: str = "") -> dict:
     wp_url, wp_user, wp_password = _resolve_wp_creds(wp_url, wp_user, wp_password)
-    async with httpx.AsyncClient(timeout=60.0) as client:
-        media_resp = await client.get(media_url)
+    download_headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+        "Accept": "image/webp,image/apng,image/*,*/*;q=0.8",
+        "Referer": media_url,
+    }
+    async with httpx.AsyncClient(timeout=60.0, follow_redirects=True) as client:
+        media_resp = await client.get(media_url, headers=download_headers)
         media_resp.raise_for_status()
         content_type = media_resp.headers.get("content-type", "image/jpeg")
 
