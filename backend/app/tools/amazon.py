@@ -22,8 +22,8 @@ async def _fetch_page(url: str) -> str:
             viewport={"width": 1280, "height": 720},
         )
         page = await context.new_page()
-        await page.goto(url, wait_until="domcontentloaded", timeout=20000)
-        await asyncio.sleep(2)
+        await page.goto(url, wait_until="domcontentloaded", timeout=30000)
+        await asyncio.sleep(4)
         html = await page.content()
         await browser.close()
 
@@ -107,11 +107,17 @@ def _parse_search_results(html: str) -> list[dict]:
         block = block_m.group(1)
 
         title = ""
-        m = re.search(r'class="a-size-(?:base|medium|mini)[^"]*a-text-normal[^"]*"[^>]*>([^<]+)', block)
-        if not m:
-            m = re.search(r'class="a-link-normal[^"]*"[^>]*title="([^"]+)"', block)
-        if m:
-            title = m.group(1).strip()
+        h2_m = re.search(r'<h2[^>]*>(.*?)</h2>', block, re.DOTALL)
+        if h2_m:
+            title = re.sub(r'<[^>]+>', '', h2_m.group(1)).strip()
+        if not title:
+            m = re.search(r'class="a-size-(?:base|medium|mini)[^"]*a-text-normal[^"]*"[^>]*>([^<]+)', block)
+            if m:
+                title = m.group(1).strip()
+        if not title:
+            m = re.search(r'aria-label="([^"]{15,})"', block)
+            if m:
+                title = m.group(1).strip()
 
         if not title:
             continue
