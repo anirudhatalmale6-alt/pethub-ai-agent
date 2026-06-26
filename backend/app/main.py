@@ -25,6 +25,7 @@ from app.tools import seo as _seo  # noqa: F401
 from app.tools import background as _bg  # noqa: F401
 from app.tools import wp_seo as _wpseo  # noqa: F401
 from app.tools import knowledge as _know  # noqa: F401
+from app.tools import mailerlite as _ml  # noqa: F401
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 

@@ -23,6 +23,12 @@ class Settings(BaseSettings):
     wp_user: str = ""
     wp_password: str = ""
 
+    mailerlite_api_key: str = ""
+    amazon_access_key: str = ""
+    amazon_secret_key: str = ""
+    amazon_partner_tag: str = "pethubonline-21"
+    amazon_region: str = "eu-west-1"
+
     max_tool_iterations: int = 10
     require_approval_for: list[str] = [
         "bulk_edit",
