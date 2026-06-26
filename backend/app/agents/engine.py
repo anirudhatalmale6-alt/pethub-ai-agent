@@ -44,9 +44,19 @@ class AgentEngine:
         self.max_iterations = self.settings.max_tool_iterations
 
     async def _build_messages(self, conversation: Conversation) -> list[dict]:
+        from sqlalchemy import select as sa_select
+        from app.models.models import Message as MsgModel
+
+        result = await self.db.execute(
+            sa_select(MsgModel)
+            .where(MsgModel.conversation_id == conversation.id)
+            .order_by(MsgModel.created_at)
+        )
+        db_messages = result.scalars().all()
+
         messages = [{"role": "system", "content": SYSTEM_PROMPT}]
 
-        for msg in conversation.messages:
+        for msg in db_messages:
             entry: dict[str, Any] = {"role": msg.role}
             if msg.content:
                 entry["content"] = msg.content
