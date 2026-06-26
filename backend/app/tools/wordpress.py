@@ -36,6 +36,19 @@ def _resolve_wp_creds(wp_url: str = "", wp_user: str = "", wp_password: str = ""
     return (wp_url or defaults[0], wp_user or defaults[1], wp_password or defaults[2])
 
 
+async def _detect_post_type(wp_url: str, wp_user: str, wp_password: str, post_id: int) -> str:
+    wp_url, wp_user, wp_password = _resolve_wp_creds(wp_url, wp_user, wp_password)
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        for pt in ["posts", "pages"]:
+            resp = await client.get(
+                f"{wp_url.rstrip('/')}/wp-json/wp/v2/{pt}/{post_id}",
+                auth=(wp_user, wp_password),
+            )
+            if resp.status_code == 200:
+                return pt
+    return "posts"
+
+
 async def _wp_request(method: str, wp_url: str, wp_user: str, wp_password: str,
                       endpoint: str, data: dict | None = None, params: dict | None = None) -> dict[str, Any]:
     wp_url, wp_user, wp_password = _resolve_wp_creds(wp_url, wp_user, wp_password)
@@ -135,7 +148,10 @@ async def wp_create_post(wp_url: str = "", wp_user: str = "", wp_password: str =
 )
 async def wp_update_post(wp_url: str = "", wp_user: str = "", wp_password: str = "",
                          post_id: int = 0, title: str = "", content: str = "",
-                         status: str = "", post_type: str = "posts") -> dict:
+                         status: str = "", post_type: str = "") -> dict:
+    if not post_type:
+        post_type = await _detect_post_type(wp_url, wp_user, wp_password, post_id)
+
     data: dict[str, Any] = {}
     if title:
         data["title"] = title
@@ -165,7 +181,9 @@ async def wp_update_post(wp_url: str = "", wp_user: str = "", wp_password: str =
     requires_approval=True,
 )
 async def wp_delete_post(wp_url: str = "", wp_user: str = "", wp_password: str = "",
-                         post_id: int = 0, post_type: str = "posts", force: bool = False) -> dict:
+                         post_id: int = 0, post_type: str = "", force: bool = False) -> dict:
+    if not post_type:
+        post_type = await _detect_post_type(wp_url, wp_user, wp_password, post_id)
     endpoint = f"wp/v2/{post_type}/{post_id}"
     params = {"force": force}
     result = await _wp_request("DELETE", wp_url, wp_user, wp_password, endpoint, params=params)
@@ -279,7 +297,9 @@ async def wp_list_categories(wp_url: str = "", wp_user: str = "", wp_password: s
     category="wordpress",
 )
 async def wp_get_post(wp_url: str = "", wp_user: str = "", wp_password: str = "",
-                      post_id: int = 0, post_type: str = "posts") -> dict:
+                      post_id: int = 0, post_type: str = "") -> dict:
+    if not post_type:
+        post_type = await _detect_post_type(wp_url, wp_user, wp_password, post_id)
     result = await _wp_request("GET", wp_url, wp_user, wp_password, f"wp/v2/{post_type}/{post_id}")
     return {
         "id": result["id"],

@@ -40,9 +40,13 @@ def _resolve(wp_url: str = "", wp_user: str = "", wp_password: str = "") -> tupl
     requires_approval=True,
 )
 async def wp_update_seo_meta(post_id: int = 0, meta_title: str = "", meta_description: str = "",
-                              focus_keyword: str = "", post_type: str = "posts",
+                              focus_keyword: str = "", post_type: str = "",
                               wp_url: str = "", wp_user: str = "", wp_password: str = "") -> dict:
     wp_url, wp_user, wp_password = _resolve(wp_url, wp_user, wp_password)
+
+    if not post_type:
+        from app.tools.wordpress import _detect_post_type
+        post_type = await _detect_post_type(wp_url, wp_user, wp_password, post_id)
 
     meta: dict[str, str] = {}
     if meta_title:
@@ -99,9 +103,13 @@ async def wp_update_seo_meta(post_id: int = 0, meta_title: str = "", meta_descri
     },
     category="wordpress",
 )
-async def wp_get_seo_meta(post_id: int = 0, post_type: str = "posts",
+async def wp_get_seo_meta(post_id: int = 0, post_type: str = "",
                            wp_url: str = "", wp_user: str = "", wp_password: str = "") -> dict:
     wp_url, wp_user, wp_password = _resolve(wp_url, wp_user, wp_password)
+
+    if not post_type:
+        from app.tools.wordpress import _detect_post_type
+        post_type = await _detect_post_type(wp_url, wp_user, wp_password, post_id)
 
     url = f"{wp_url.rstrip('/')}/wp-json/wp/v2/{post_type}/{post_id}"
 
