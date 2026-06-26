@@ -65,6 +65,14 @@ async def _build_system_prompt(user_message: str = "") -> str:
     except Exception:
         pass
 
+    try:
+        from app.agents.observability import observability
+        unreliable = observability.tracker.get_unreliable_tools()
+        if unreliable:
+            prompt += f"\n\nTOOL ADVISORIES: These tools have low reliability and may fail: {', '.join(unreliable)}. Prefer alternatives when possible."
+    except Exception:
+        pass
+
     return prompt
 
 
@@ -171,6 +179,12 @@ class AgentEngine:
             execution.result = result if isinstance(result, dict) else {"output": str(result)}
             execution.status = "completed"
             execution.duration_ms = int((time.monotonic() - start) * 1000)
+
+            try:
+                from app.agents.observability import observability
+                observability.record_execution(tool_name, execution.duration_ms, True, arguments=arguments, result=execution.result)
+            except Exception:
+                pass
 
             try:
                 from app.agents.feedback import feedback_engine

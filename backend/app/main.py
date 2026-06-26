@@ -31,6 +31,7 @@ from app.tools import feedback as _fb  # noqa: F401
 from app.tools import connector as _conn  # noqa: F401
 from app.tools import project as _proj  # noqa: F401
 from app.tools import goals as _goals  # noqa: F401
+from app.tools import observability_tools as _obs  # noqa: F401
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 
