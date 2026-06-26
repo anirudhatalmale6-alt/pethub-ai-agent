@@ -36,11 +36,14 @@ You have access to various tools for WordPress management, code generation, SEO 
 
 IMPORTANT - WordPress credentials are pre-configured on the server. When using any WordPress tool (wp_list_posts, wp_create_post, wp_update_post, etc.), do NOT ask the user for wp_url, wp_user, or wp_password. Just leave those parameters empty or omit them — the system will automatically use the stored credentials. Simply execute the tool directly when the user asks for WordPress operations.
 
-MEMORY - You have remember/recall/forget tools for explicit storage. You also have a contextual memory system that automatically learns from conversations. When the user tells you a preference, corrects you, or reveals important information, it's automatically captured. You can also explicitly store things with the 'remember' tool."""
+MEMORY - You have remember/recall/forget tools for explicit storage. You also have a contextual memory system that automatically learns from conversations.
+
+SELF-IMPROVEMENT - After completing tasks, the system evaluates outcomes and learns improvement rules. You can use 'evaluate_content' to score any post, 'get_improvement_tips' to see what you've learned, and 'performance_report' for trends. Apply learned rules automatically when creating content or executing tasks."""
 
 
 async def _build_system_prompt(user_message: str = "") -> str:
     from app.agents.memory import memory_engine
+    from app.agents.feedback import feedback_engine
 
     prompt = SYSTEM_PROMPT_BASE
 
@@ -48,6 +51,17 @@ async def _build_system_prompt(user_message: str = "") -> str:
         context = await memory_engine.get_relevant_context(user_message)
         if context:
             prompt += "\n\n" + context
+    except Exception:
+        pass
+
+    try:
+        content_rules = await feedback_engine.get_improvement_rules("content_creation")
+        general_rules = await feedback_engine.get_improvement_rules("")
+        all_rules = list(dict.fromkeys(content_rules + general_rules))[:15]
+        if all_rules:
+            prompt += "\n\nLEARNED IMPROVEMENT RULES (apply these automatically):\n"
+            for rule in all_rules:
+                prompt += f"- {rule}\n"
     except Exception:
         pass
 
@@ -157,11 +171,32 @@ class AgentEngine:
             execution.result = result if isinstance(result, dict) else {"output": str(result)}
             execution.status = "completed"
             execution.duration_ms = int((time.monotonic() - start) * 1000)
+
+            try:
+                from app.agents.feedback import feedback_engine
+                evaluatable = ["wp_create_post", "wp_update_post", "wp_update_seo_meta",
+                               "generate_wp_plugin", "generate_code"]
+                if tool_name in evaluatable:
+                    asyncio.create_task(feedback_engine.evaluate_action(
+                        tool_name, str(arguments)[:255], execution.result, conversation_id
+                    ))
+            except Exception:
+                pass
+
         except Exception as e:
             logger.exception(f"Tool execution failed: {tool_name}")
             execution.error = str(e)
             execution.status = "failed"
             execution.duration_ms = int((time.monotonic() - start) * 1000)
+
+            try:
+                from app.agents.feedback import feedback_engine
+                asyncio.create_task(feedback_engine.evaluate_action(
+                    tool_name, str(arguments)[:255],
+                    {"error": str(e), "status": "failed"}, conversation_id
+                ))
+            except Exception:
+                pass
 
         await self.db.flush()
         return execution
