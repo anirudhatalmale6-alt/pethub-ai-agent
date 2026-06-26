@@ -61,6 +61,7 @@ services:
       - uploads:/app/uploads
       - screenshots:/app/screenshots
       - plugins:/app/plugins
+      - connectors:/app/connectors
     depends_on:
       db:
         condition: service_healthy
@@ -113,3 +114,4 @@ volumes:
   uploads:
   screenshots:
   plugins:
+  connectors:

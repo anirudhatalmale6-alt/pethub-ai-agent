@@ -28,6 +28,7 @@ from app.tools import knowledge as _know  # noqa: F401
 from app.tools import mailerlite as _ml  # noqa: F401
 from app.tools import amazon as _amz  # noqa: F401
 from app.tools import feedback as _fb  # noqa: F401
+from app.tools import connector as _conn  # noqa: F401
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 
