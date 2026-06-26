@@ -68,7 +68,7 @@ export default function ChatApp({ user, onLogout }: Props) {
     }
   };
 
-  const handleNewChat = async () => {
+  const handleNewChat = async (): Promise<string | null> => {
     try {
       const conv = await createConversation();
       setConversations((prev) => [conv, ...prev]);
@@ -76,8 +76,10 @@ export default function ChatApp({ user, onLogout }: Props) {
       setMessages([]);
       setToolEvents([]);
       inputRef.current?.focus();
+      return conv.id;
     } catch (err) {
       console.error(err);
+      return null;
     }
   };
 
@@ -97,11 +99,12 @@ export default function ChatApp({ user, onLogout }: Props) {
 
   const handleSend = async () => {
     if (!input.trim() || isStreaming) return;
-    if (!activeConv) {
-      await handleNewChat();
-    }
 
-    const convId = activeConv!;
+    let convId = activeConv;
+    if (!convId) {
+      convId = await handleNewChat();
+      if (!convId) return;
+    }
     const userMsg: Message = { role: "user", content: input };
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
