@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import time
@@ -223,6 +224,12 @@ class AgentEngine:
                         break
 
             except Exception as e:
+                from openai import RateLimitError, APIConnectionError, APITimeoutError
+                if isinstance(e, (RateLimitError, APIConnectionError, APITimeoutError)) and iteration < 3:
+                    logger.warning(f"OpenAI transient error (attempt {iteration}): {e}")
+                    yield StreamEvent(type="text_delta", data={"content": "One moment, retrying..."})
+                    await asyncio.sleep(2 ** iteration)
+                    continue
                 logger.exception("OpenAI API error")
                 yield StreamEvent(type="error", data={"message": str(e)})
                 return
