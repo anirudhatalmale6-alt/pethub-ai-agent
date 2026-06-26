@@ -102,7 +102,7 @@ async def wp_list_posts(wp_url: str = "", wp_user: str = "", wp_password: str = 
     requires_approval=True,
 )
 async def wp_create_post(wp_url: str = "", wp_user: str = "", wp_password: str = "",
-                         title: str, content: str, status: str = "draft",
+                         title: str = "", content: str = "", status: str = "draft",
                          post_type: str = "posts", categories: list[int] | None = None,
                          tags: list[int] | None = None) -> dict:
     data: dict[str, Any] = {"title": title, "content": content, "status": status}
@@ -134,7 +134,7 @@ async def wp_create_post(wp_url: str = "", wp_user: str = "", wp_password: str =
     requires_approval=True,
 )
 async def wp_update_post(wp_url: str = "", wp_user: str = "", wp_password: str = "",
-                         post_id: int, title: str = "", content: str = "",
+                         post_id: int = 0, title: str = "", content: str = "",
                          status: str = "", post_type: str = "posts") -> dict:
     data: dict[str, Any] = {}
     if title:
@@ -165,7 +165,7 @@ async def wp_update_post(wp_url: str = "", wp_user: str = "", wp_password: str =
     requires_approval=True,
 )
 async def wp_delete_post(wp_url: str = "", wp_user: str = "", wp_password: str = "",
-                         post_id: int, post_type: str = "posts", force: bool = False) -> dict:
+                         post_id: int = 0, post_type: str = "posts", force: bool = False) -> dict:
     endpoint = f"wp/v2/{post_type}/{post_id}"
     params = {"force": force}
     result = await _wp_request("DELETE", wp_url, wp_user, wp_password, endpoint, params=params)
@@ -215,7 +215,8 @@ async def wp_list_pages(wp_url: str = "", wp_user: str = "", wp_password: str = 
     category="wordpress",
 )
 async def wp_upload_media(wp_url: str = "", wp_user: str = "", wp_password: str = "",
-                          media_url: str, filename: str, alt_text: str = "") -> dict:
+                          media_url: str = "", filename: str = "", alt_text: str = "") -> dict:
+    wp_url, wp_user, wp_password = _resolve_wp_creds(wp_url, wp_user, wp_password)
     async with httpx.AsyncClient(timeout=60.0) as client:
         media_resp = await client.get(media_url)
         media_resp.raise_for_status()
@@ -273,7 +274,7 @@ async def wp_list_categories(wp_url: str = "", wp_user: str = "", wp_password: s
     category="wordpress",
 )
 async def wp_get_post(wp_url: str = "", wp_user: str = "", wp_password: str = "",
-                      post_id: int, post_type: str = "posts") -> dict:
+                      post_id: int = 0, post_type: str = "posts") -> dict:
     result = await _wp_request("GET", wp_url, wp_user, wp_password, f"wp/v2/{post_type}/{post_id}")
     return {
         "id": result["id"],
