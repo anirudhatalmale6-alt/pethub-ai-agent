@@ -182,7 +182,11 @@ export default function ChatApp({ user, onLogout }: Props) {
             return updated;
           });
           setIsStreaming(false);
-          setTimeout(() => setToolEvents([]), 2000);
+          setToolEvents((prev) => {
+            const hasPending = prev.some((te) => te.type === "tool_approval_required");
+            if (hasPending) return prev;
+            return [];
+          });
           listConversations().then(setConversations);
           break;
       }
@@ -195,10 +199,11 @@ export default function ChatApp({ user, onLogout }: Props) {
       setToolEvents((prev) =>
         prev.map((te) =>
           te.execution_id === executionId
-            ? { ...te, type: "tool_result", status: result.status, result: result.result }
+            ? { ...te, type: "tool_result", status: approved ? (result.status || "completed") : "rejected", result: result.result }
             : te
         )
       );
+      setTimeout(() => setToolEvents([]), 3000);
     } catch (err) {
       console.error(err);
     }

@@ -21,7 +21,7 @@ def _resolve(wp_url: str = "", wp_user: str = "", wp_password: str = "") -> tupl
 
 @registry.tool(
     name="wp_update_seo_meta",
-    description="Update the SEO meta title, description, and focus keyword for a WordPress post or page using Rank Math. Use this when asked to update meta titles, meta descriptions, or SEO settings for any post or page.",
+    description="Update the SEO meta title, description, and focus keyword for a WordPress post or page using Rank Math. Use this when asked to update meta titles, meta descriptions, or SEO settings.",
     parameters={
         "type": "object",
         "properties": {
@@ -29,9 +29,10 @@ def _resolve(wp_url: str = "", wp_user: str = "", wp_password: str = "") -> tupl
             "meta_title": {"type": "string", "description": "SEO meta title (recommended 50-60 chars)"},
             "meta_description": {"type": "string", "description": "SEO meta description (recommended 120-160 chars)"},
             "focus_keyword": {"type": "string", "description": "Primary focus keyword for the post"},
-            "wp_url": {"type": "string", "description": "WordPress URL (leave empty for default)", "default": ""},
-            "wp_user": {"type": "string", "description": "WordPress user (leave empty for default)", "default": ""},
-            "wp_password": {"type": "string", "description": "WordPress password (leave empty for default)", "default": ""},
+            "post_type": {"type": "string", "description": "Content type: posts or pages", "default": "posts"},
+            "wp_url": {"type": "string", "default": ""},
+            "wp_user": {"type": "string", "default": ""},
+            "wp_password": {"type": "string", "default": ""},
         },
         "required": ["post_id"],
     },
@@ -39,11 +40,11 @@ def _resolve(wp_url: str = "", wp_user: str = "", wp_password: str = "") -> tupl
     requires_approval=True,
 )
 async def wp_update_seo_meta(post_id: int = 0, meta_title: str = "", meta_description: str = "",
-                              focus_keyword: str = "", wp_url: str = "", wp_user: str = "",
-                              wp_password: str = "") -> dict:
+                              focus_keyword: str = "", post_type: str = "posts",
+                              wp_url: str = "", wp_user: str = "", wp_password: str = "") -> dict:
     wp_url, wp_user, wp_password = _resolve(wp_url, wp_user, wp_password)
 
-    meta: dict[str, Any] = {}
+    meta: dict[str, str] = {}
     if meta_title:
         meta["rank_math_title"] = meta_title
     if meta_description:
@@ -54,27 +55,24 @@ async def wp_update_seo_meta(post_id: int = 0, meta_title: str = "", meta_descri
     if not meta:
         return {"error": "No meta fields provided. Specify at least one of: meta_title, meta_description, focus_keyword"}
 
-    url = f"{wp_url.rstrip('/')}/wp-json/rankmath/v1/updateMeta"
-    payload = {
-        "objectID": post_id,
-        "objectType": "post",
-        "meta": meta,
-    }
+    url = f"{wp_url.rstrip('/')}/wp-json/wp/v2/{post_type}/{post_id}"
 
     async with httpx.AsyncClient(timeout=30.0) as client:
         response = await client.post(
             url, auth=(wp_user, wp_password),
-            json=payload,
+            json={"meta": meta},
             headers={"Content-Type": "application/json"},
         )
 
         if response.status_code == 200:
+            data = response.json()
+            saved_meta = data.get("meta", {})
             return {
                 "post_id": post_id,
                 "status": "updated",
-                "meta_title": meta_title or "(unchanged)",
-                "meta_description": meta_description or "(unchanged)",
-                "focus_keyword": focus_keyword or "(unchanged)",
+                "meta_title": saved_meta.get("rank_math_title", meta_title),
+                "meta_description": saved_meta.get("rank_math_description", meta_description),
+                "focus_keyword": saved_meta.get("rank_math_focus_keyword", focus_keyword),
             }
         else:
             return {
@@ -92,34 +90,29 @@ async def wp_update_seo_meta(post_id: int = 0, meta_title: str = "", meta_descri
         "type": "object",
         "properties": {
             "post_id": {"type": "integer", "description": "The WordPress post or page ID"},
-            "wp_url": {"type": "string", "description": "WordPress URL (leave empty for default)", "default": ""},
-            "wp_user": {"type": "string", "description": "WordPress user (leave empty for default)", "default": ""},
-            "wp_password": {"type": "string", "description": "WordPress password (leave empty for default)", "default": ""},
+            "post_type": {"type": "string", "description": "Content type: posts or pages", "default": "posts"},
+            "wp_url": {"type": "string", "default": ""},
+            "wp_user": {"type": "string", "default": ""},
+            "wp_password": {"type": "string", "default": ""},
         },
         "required": ["post_id"],
     },
     category="wordpress",
 )
-async def wp_get_seo_meta(post_id: int = 0, wp_url: str = "", wp_user: str = "",
-                           wp_password: str = "") -> dict:
+async def wp_get_seo_meta(post_id: int = 0, post_type: str = "posts",
+                           wp_url: str = "", wp_user: str = "", wp_password: str = "") -> dict:
     wp_url, wp_user, wp_password = _resolve(wp_url, wp_user, wp_password)
 
-    url = f"{wp_url.rstrip('/')}/wp-json/rankmath/v1/getHead"
-    params = {"url": f"{wp_url.rstrip('/')}/?p={post_id}"}
+    url = f"{wp_url.rstrip('/')}/wp-json/wp/v2/{post_type}/{post_id}"
 
     async with httpx.AsyncClient(timeout=30.0) as client:
-        response = await client.get(url, auth=(wp_user, wp_password), params=params)
-
-    # Fallback: read from post meta directly
-    meta_url = f"{wp_url.rstrip('/')}/wp-json/wp/v2/posts/{post_id}"
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        response = await client.get(meta_url, auth=(wp_user, wp_password))
+        response = await client.get(url, auth=(wp_user, wp_password))
         if response.status_code == 200:
-            post = response.json()
-            meta = post.get("meta", {})
+            data = response.json()
+            meta = data.get("meta", {})
             return {
                 "post_id": post_id,
-                "title": post.get("title", {}).get("rendered", ""),
+                "title": data.get("title", {}).get("rendered", ""),
                 "rank_math_title": meta.get("rank_math_title", ""),
                 "rank_math_description": meta.get("rank_math_description", ""),
                 "rank_math_focus_keyword": meta.get("rank_math_focus_keyword", ""),
