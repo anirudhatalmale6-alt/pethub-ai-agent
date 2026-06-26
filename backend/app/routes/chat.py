@@ -167,7 +167,7 @@ async def approve_tool_execution(
     if req.approved:
         execution.status = "executing"
         execution.approved_by = user.id
-        await db.flush()
+        await db.commit()
 
         try:
             from app.tools.registry import registry
