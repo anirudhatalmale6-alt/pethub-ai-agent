@@ -133,11 +133,23 @@ export default function ChatApp({ user, onLogout }: Props) {
           break;
 
         case "tool_result":
-          setToolEvents((prev) => [...prev, { type: "tool_result", ...event.data }]);
+          setToolEvents((prev) =>
+            prev.map((te) =>
+              te.tool_call_id === event.data.tool_call_id
+                ? { ...te, type: "tool_result", status: event.data.status, result: event.data.result }
+                : te
+            )
+          );
           break;
 
         case "tool_approval_required":
-          setToolEvents((prev) => [...prev, { type: "tool_approval_required", ...event.data }]);
+          setToolEvents((prev) =>
+            prev.map((te) =>
+              te.tool_call_id === event.data.tool_call_id
+                ? { ...te, type: "tool_approval_required", ...event.data }
+                : te
+            )
+          );
           break;
 
         case "error":
@@ -162,6 +174,7 @@ export default function ChatApp({ user, onLogout }: Props) {
             return updated;
           });
           setIsStreaming(false);
+          setTimeout(() => setToolEvents([]), 2000);
           listConversations().then(setConversations);
           break;
       }
