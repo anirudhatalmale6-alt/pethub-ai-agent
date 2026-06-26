@@ -13,19 +13,24 @@ from app.routes import approvals as approvals_router
 from app.tasks.queue import task_queue
 from app.tasks.handlers import register_handlers
 
+# Register tools (must import before app creation so they're available)
+from app.tools import wordpress as _wp  # noqa: F401
+from app.tools import vision as _vis  # noqa: F401
+from app.tools import codegen as _cg  # noqa: F401
+from app.tools import seo as _seo  # noqa: F401
+from app.tools import background as _bg  # noqa: F401
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 
 settings = get_settings()
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Startup
+async def lifespan(application: FastAPI):
     await task_queue.connect()
     register_handlers()
     worker_task = asyncio.create_task(task_queue.worker_loop())
     yield
-    # Shutdown
     task_queue.stop()
     worker_task.cancel()
     try:
@@ -35,9 +40,9 @@ async def lifespan(app: FastAPI):
     await task_queue.disconnect()
 
 
-app = FastAPI(title=settings.app_name, docs_url="/api/docs", redoc_url="/api/redoc", lifespan=lifespan)
+application = FastAPI(title=settings.app_name, docs_url="/api/docs", redoc_url="/api/redoc", lifespan=lifespan)
 
-app.add_middleware(
+application.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
     allow_credentials=True,
@@ -45,25 +50,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(auth.router)
-app.include_router(chat.router)
-app.include_router(tasks_router.router)
-app.include_router(approvals_router.router)
-
-# Register tools on startup
-import app.tools.wordpress  # noqa: F401
-import app.tools.vision  # noqa: F401
-import app.tools.codegen  # noqa: F401
-import app.tools.seo  # noqa: F401
-import app.tools.background  # noqa: F401
+application.include_router(auth.router)
+application.include_router(chat.router)
+application.include_router(tasks_router.router)
+application.include_router(approvals_router.router)
 
 
-@app.get("/api/health")
+@application.get("/api/health")
 async def health():
     return {"status": "ok", "app": settings.app_name, "environment": settings.environment}
 
 
-@app.get("/api/tools")
+@application.get("/api/tools")
 async def list_tools():
     from app.tools.registry import registry
     tools = registry.list_tools()

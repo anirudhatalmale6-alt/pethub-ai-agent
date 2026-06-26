@@ -49,7 +49,7 @@ services:
     command: >
       sh -c "
         PYTHONPATH=/app alembic upgrade head &&
-        uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2
+        uvicorn app.main:application --host 0.0.0.0 --port 8000
       "
 
   frontend:
