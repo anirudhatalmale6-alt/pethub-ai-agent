@@ -30,6 +30,7 @@ from app.tools import amazon as _amz  # noqa: F401
 from app.tools import feedback as _fb  # noqa: F401
 from app.tools import connector as _conn  # noqa: F401
 from app.tools import project as _proj  # noqa: F401
+from app.tools import goals as _goals  # noqa: F401
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 
@@ -38,12 +39,17 @@ settings = get_settings()
 
 @asynccontextmanager
 async def lifespan(application: FastAPI):
+    from app.agents.goal_runner import goal_runner
+
     await task_queue.connect()
     register_handlers()
     worker_task = asyncio.create_task(task_queue.worker_loop())
+    goal_task = asyncio.create_task(goal_runner.run_scheduled())
     yield
     task_queue.stop()
+    goal_runner.stop()
     worker_task.cancel()
+    goal_task.cancel()
     try:
         await worker_task
     except asyncio.CancelledError:
