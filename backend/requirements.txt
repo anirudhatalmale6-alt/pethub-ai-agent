@@ -13,6 +13,7 @@ httpx==0.28.1
 sse-starlette==2.2.1
 python-multipart==0.0.20
 passlib[bcrypt]==1.7.4
+bcrypt==4.0.1
 python-jose[cryptography]==3.3.0
 playwright==1.49.1
 paramiko==3.5.0
