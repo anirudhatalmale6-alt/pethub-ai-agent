@@ -22,7 +22,7 @@ class StreamEvent:
     data: dict[str, Any]
 
 
-SYSTEM_PROMPT = """You are PetHub AI Agent, an intelligent operations assistant. You help manage websites, generate content, analyse data, and execute tasks using the tools available to you.
+SYSTEM_PROMPT_BASE = """You are PetHub AI Agent, an intelligent operations assistant. You help manage websites, generate content, analyse data, and execute tasks using the tools available to you.
 
 Key behaviours:
 - Always explain what you plan to do before executing tools
@@ -33,7 +33,33 @@ Key behaviours:
 
 You have access to various tools for WordPress management, code generation, SEO analysis, and more. Use them when the user's request requires action, not just information.
 
-IMPORTANT - WordPress credentials are pre-configured on the server. When using any WordPress tool (wp_list_posts, wp_create_post, wp_update_post, etc.), do NOT ask the user for wp_url, wp_user, or wp_password. Just leave those parameters empty or omit them — the system will automatically use the stored credentials. Simply execute the tool directly when the user asks for WordPress operations."""
+IMPORTANT - WordPress credentials are pre-configured on the server. When using any WordPress tool (wp_list_posts, wp_create_post, wp_update_post, etc.), do NOT ask the user for wp_url, wp_user, or wp_password. Just leave those parameters empty or omit them — the system will automatically use the stored credentials. Simply execute the tool directly when the user asks for WordPress operations.
+
+MEMORY - You have remember/recall/forget tools. When the user tells you a preference or something to remember, use the 'remember' tool to store it. At the start of complex tasks, use 'recall' to check for relevant stored knowledge. If the user says "remember that..." or "from now on...", always store it."""
+
+
+async def _build_system_prompt() -> str:
+    from sqlalchemy import select as sa_select
+    from app.database import async_session
+    from app.models.knowledge import KnowledgeEntry
+
+    prompt = SYSTEM_PROMPT_BASE
+
+    try:
+        async with async_session() as db:
+            result = await db.execute(
+                sa_select(KnowledgeEntry).order_by(KnowledgeEntry.category, KnowledgeEntry.key)
+            )
+            entries = result.scalars().all()
+
+            if entries:
+                prompt += "\n\nSTORED KNOWLEDGE (apply these automatically):\n"
+                for e in entries:
+                    prompt += f"- [{e.category}] {e.key}: {e.value}\n"
+    except Exception:
+        pass
+
+    return prompt
 
 
 class AgentEngine:
@@ -54,7 +80,8 @@ class AgentEngine:
         )
         db_messages = result.scalars().all()
 
-        messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+        system_prompt = await _build_system_prompt()
+        messages = [{"role": "system", "content": system_prompt}]
 
         valid_tool_call_ids: set[str] = set()
 

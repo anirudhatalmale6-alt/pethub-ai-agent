@@ -10,16 +10,20 @@ from app.config import get_settings
 from app.routes import auth, chat
 from app.routes import tasks as tasks_router
 from app.routes import approvals as approvals_router
+from app.routes import files as files_router
+from app.routes import knowledge as knowledge_router
 from app.tasks.queue import task_queue
 from app.tasks.handlers import register_handlers
+from app.middleware.rate_limit import RateLimitMiddleware
 
-# Register tools (must import before app creation so they're available)
+# Register tools
 from app.tools import wordpress as _wp  # noqa: F401
 from app.tools import vision as _vis  # noqa: F401
 from app.tools import codegen as _cg  # noqa: F401
 from app.tools import seo as _seo  # noqa: F401
 from app.tools import background as _bg  # noqa: F401
 from app.tools import wp_seo as _wpseo  # noqa: F401
+from app.tools import knowledge as _know  # noqa: F401
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 
@@ -43,6 +47,7 @@ async def lifespan(application: FastAPI):
 
 application = FastAPI(title=settings.app_name, docs_url="/api/docs", redoc_url="/api/redoc", lifespan=lifespan)
 
+application.add_middleware(RateLimitMiddleware, requests_per_minute=120)
 application.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
@@ -55,6 +60,8 @@ application.include_router(auth.router)
 application.include_router(chat.router)
 application.include_router(tasks_router.router)
 application.include_router(approvals_router.router)
+application.include_router(files_router.router)
+application.include_router(knowledge_router.router)
 
 
 @application.get("/api/health")
