@@ -25,6 +25,9 @@ app.include_router(chat.router)
 
 # Register tools on startup
 import app.tools.wordpress  # noqa: F401
+import app.tools.vision  # noqa: F401
+import app.tools.codegen  # noqa: F401
+import app.tools.seo  # noqa: F401
 
 
 @app.get("/api/health")
