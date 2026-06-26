@@ -64,7 +64,7 @@ async def _wp_request(method: str, wp_url: str, wp_user: str, wp_password: str,
     }),
     category="wordpress",
 )
-async def wp_list_posts(wp_url: str, wp_user: str, wp_password: str,
+async def wp_list_posts(wp_url: str = "", wp_user: str = "", wp_password: str = "",
                         status: str = "publish", per_page: int = 10, search: str = "",
                         category: int = 0, page: int = 1) -> dict:
     params: dict[str, Any] = {"status": status, "per_page": min(per_page, 100), "page": page}
@@ -101,7 +101,7 @@ async def wp_list_posts(wp_url: str, wp_user: str, wp_password: str,
     category="wordpress",
     requires_approval=True,
 )
-async def wp_create_post(wp_url: str, wp_user: str, wp_password: str,
+async def wp_create_post(wp_url: str = "", wp_user: str = "", wp_password: str = "",
                          title: str, content: str, status: str = "draft",
                          post_type: str = "posts", categories: list[int] | None = None,
                          tags: list[int] | None = None) -> dict:
@@ -133,7 +133,7 @@ async def wp_create_post(wp_url: str, wp_user: str, wp_password: str,
     category="wordpress",
     requires_approval=True,
 )
-async def wp_update_post(wp_url: str, wp_user: str, wp_password: str,
+async def wp_update_post(wp_url: str = "", wp_user: str = "", wp_password: str = "",
                          post_id: int, title: str = "", content: str = "",
                          status: str = "", post_type: str = "posts") -> dict:
     data: dict[str, Any] = {}
@@ -164,7 +164,7 @@ async def wp_update_post(wp_url: str, wp_user: str, wp_password: str,
     category="wordpress",
     requires_approval=True,
 )
-async def wp_delete_post(wp_url: str, wp_user: str, wp_password: str,
+async def wp_delete_post(wp_url: str = "", wp_user: str = "", wp_password: str = "",
                          post_id: int, post_type: str = "posts", force: bool = False) -> dict:
     endpoint = f"wp/v2/{post_type}/{post_id}"
     params = {"force": force}
@@ -184,7 +184,7 @@ async def wp_delete_post(wp_url: str, wp_user: str, wp_password: str,
     }),
     category="wordpress",
 )
-async def wp_list_pages(wp_url: str, wp_user: str, wp_password: str,
+async def wp_list_pages(wp_url: str = "", wp_user: str = "", wp_password: str = "",
                         status: str = "publish", per_page: int = 20, search: str = "") -> dict:
     params: dict[str, Any] = {"status": status, "per_page": min(per_page, 100)}
     if search:
@@ -214,7 +214,7 @@ async def wp_list_pages(wp_url: str, wp_user: str, wp_password: str,
     }),
     category="wordpress",
 )
-async def wp_upload_media(wp_url: str, wp_user: str, wp_password: str,
+async def wp_upload_media(wp_url: str = "", wp_user: str = "", wp_password: str = "",
                           media_url: str, filename: str, alt_text: str = "") -> dict:
     async with httpx.AsyncClient(timeout=60.0) as client:
         media_resp = await client.get(media_url)
@@ -250,7 +250,7 @@ async def wp_upload_media(wp_url: str, wp_user: str, wp_password: str,
     }),
     category="wordpress",
 )
-async def wp_list_categories(wp_url: str, wp_user: str, wp_password: str,
+async def wp_list_categories(wp_url: str = "", wp_user: str = "", wp_password: str = "",
                              per_page: int = 100) -> dict:
     cats = await _wp_request("GET", wp_url, wp_user, wp_password, "wp/v2/categories",
                              params={"per_page": min(per_page, 100)})
@@ -272,7 +272,7 @@ async def wp_list_categories(wp_url: str, wp_user: str, wp_password: str,
     }),
     category="wordpress",
 )
-async def wp_get_post(wp_url: str, wp_user: str, wp_password: str,
+async def wp_get_post(wp_url: str = "", wp_user: str = "", wp_password: str = "",
                       post_id: int, post_type: str = "posts") -> dict:
     result = await _wp_request("GET", wp_url, wp_user, wp_password, f"wp/v2/{post_type}/{post_id}")
     return {
