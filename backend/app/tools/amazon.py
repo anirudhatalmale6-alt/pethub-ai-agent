@@ -1,20 +1,33 @@
+import asyncio
 import logging
 import re
 from typing import Any
 from urllib.parse import quote_plus
-
-import httpx
 
 from app.tools.registry import registry
 
 logger = logging.getLogger(__name__)
 
 AFFILIATE_TAG = "pethubonline-21"
-HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-    "Accept-Language": "en-GB,en;q=0.9",
-}
+
+
+async def _fetch_page(url: str) -> str:
+    from playwright.async_api import async_playwright
+
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=True, args=["--no-sandbox", "--disable-blink-features=AutomationControlled"])
+        context = await browser.new_context(
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+            locale="en-GB",
+            viewport={"width": 1280, "height": 720},
+        )
+        page = await context.new_page()
+        await page.goto(url, wait_until="domcontentloaded", timeout=20000)
+        await asyncio.sleep(2)
+        html = await page.content()
+        await browser.close()
+
+    return html
 
 
 def _extract_asin(url: str) -> str:
@@ -154,12 +167,8 @@ def _parse_search_results(html: str) -> list[dict]:
 )
 async def amazon_search(query: str = "", max_results: int = 5) -> dict:
     url = f"https://www.amazon.co.uk/s?k={quote_plus(query)}&tag={AFFILIATE_TAG}"
-
-    async with httpx.AsyncClient(timeout=20.0, follow_redirects=True) as client:
-        resp = await client.get(url, headers=HEADERS)
-        resp.raise_for_status()
-
-    products = _parse_search_results(resp.text)[:max_results]
+    html = await _fetch_page(url)
+    products = _parse_search_results(html)[:max_results]
 
     return {
         "query": query,
@@ -186,12 +195,8 @@ async def amazon_product_details(url_or_asin: str = "") -> dict:
         return {"error": "Could not extract ASIN from the provided URL or value"}
 
     url = f"https://www.amazon.co.uk/dp/{asin}?tag={AFFILIATE_TAG}"
-
-    async with httpx.AsyncClient(timeout=20.0, follow_redirects=True) as client:
-        resp = await client.get(url, headers=HEADERS)
-        resp.raise_for_status()
-
-    product = _parse_product(resp.text, asin)
+    html = await _fetch_page(url)
+    product = _parse_product(html, asin)
     return product
 
 
@@ -211,12 +216,8 @@ async def amazon_product_details(url_or_asin: str = "") -> dict:
 )
 async def amazon_build_comparison(query: str = "", count: int = 5, table_title: str = "") -> dict:
     url = f"https://www.amazon.co.uk/s?k={quote_plus(query)}&tag={AFFILIATE_TAG}"
-
-    async with httpx.AsyncClient(timeout=20.0, follow_redirects=True) as client:
-        resp = await client.get(url, headers=HEADERS)
-        resp.raise_for_status()
-
-    products = _parse_search_results(resp.text)[:count]
+    html = await _fetch_page(url)
+    products = _parse_search_results(html)[:count]
 
     if not products:
         return {"error": "No products found", "query": query}
