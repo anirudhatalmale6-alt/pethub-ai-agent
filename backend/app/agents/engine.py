@@ -35,27 +35,18 @@ You have access to various tools for WordPress management, code generation, SEO 
 
 IMPORTANT - WordPress credentials are pre-configured on the server. When using any WordPress tool (wp_list_posts, wp_create_post, wp_update_post, etc.), do NOT ask the user for wp_url, wp_user, or wp_password. Just leave those parameters empty or omit them — the system will automatically use the stored credentials. Simply execute the tool directly when the user asks for WordPress operations.
 
-MEMORY - You have remember/recall/forget tools. When the user tells you a preference or something to remember, use the 'remember' tool to store it. At the start of complex tasks, use 'recall' to check for relevant stored knowledge. If the user says "remember that..." or "from now on...", always store it."""
+MEMORY - You have remember/recall/forget tools for explicit storage. You also have a contextual memory system that automatically learns from conversations. When the user tells you a preference, corrects you, or reveals important information, it's automatically captured. You can also explicitly store things with the 'remember' tool."""
 
 
-async def _build_system_prompt() -> str:
-    from sqlalchemy import select as sa_select
-    from app.database import async_session
-    from app.models.knowledge import KnowledgeEntry
+async def _build_system_prompt(user_message: str = "") -> str:
+    from app.agents.memory import memory_engine
 
     prompt = SYSTEM_PROMPT_BASE
 
     try:
-        async with async_session() as db:
-            result = await db.execute(
-                sa_select(KnowledgeEntry).order_by(KnowledgeEntry.category, KnowledgeEntry.key)
-            )
-            entries = result.scalars().all()
-
-            if entries:
-                prompt += "\n\nSTORED KNOWLEDGE (apply these automatically):\n"
-                for e in entries:
-                    prompt += f"- [{e.category}] {e.key}: {e.value}\n"
+        context = await memory_engine.get_relevant_context(user_message)
+        if context:
+            prompt += "\n\n" + context
     except Exception:
         pass
 
@@ -69,7 +60,7 @@ class AgentEngine:
         self.client = AsyncOpenAI(api_key=self.settings.openai_api_key)
         self.max_iterations = self.settings.max_tool_iterations
 
-    async def _build_messages(self, conversation: Conversation) -> list[dict]:
+    async def _build_messages(self, conversation: Conversation, user_message: str = "") -> list[dict]:
         from sqlalchemy import select as sa_select
         from app.models.models import Message as MsgModel
 
@@ -80,7 +71,7 @@ class AgentEngine:
         )
         db_messages = result.scalars().all()
 
-        system_prompt = await _build_system_prompt()
+        system_prompt = await _build_system_prompt(user_message)
         messages = [{"role": "system", "content": system_prompt}]
 
         valid_tool_call_ids: set[str] = set()
@@ -182,7 +173,7 @@ class AgentEngine:
         iteration = 0
         while iteration < self.max_iterations:
             iteration += 1
-            messages = await self._build_messages(conversation)
+            messages = await self._build_messages(conversation, user_message)
             tools = registry.get_openai_tools()
 
             kwargs: dict[str, Any] = {
@@ -308,4 +299,12 @@ class AgentEngine:
                 break
 
         await self.db.commit()
+
+        try:
+            import asyncio
+            from app.agents.memory import memory_engine
+            asyncio.create_task(memory_engine.extract_and_store(conversation.id))
+        except Exception:
+            pass
+
         yield StreamEvent(type="done", data={})
