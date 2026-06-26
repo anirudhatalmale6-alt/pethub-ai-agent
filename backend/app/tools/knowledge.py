@@ -34,9 +34,13 @@ async def _get_db() -> AsyncSession:
     category="system",
 )
 async def remember(category: str = "", key: str = "", value: str = "") -> dict:
+    from app.agents.workspace import workspace_manager
+    prefix = workspace_manager.get_memory_prefix()
+    scoped_key = f"{prefix}{key}" if prefix else key
+
     async with async_session() as db:
         existing = await db.execute(
-            select(KnowledgeEntry).where(KnowledgeEntry.key == key, KnowledgeEntry.category == category)
+            select(KnowledgeEntry).where(KnowledgeEntry.key == scoped_key, KnowledgeEntry.category == category)
         )
         entry = existing.scalar_one_or_none()
 
@@ -44,7 +48,7 @@ async def remember(category: str = "", key: str = "", value: str = "") -> dict:
             entry.value = value
             action = "updated"
         else:
-            entry = KnowledgeEntry(category=category, key=key, value=value)
+            entry = KnowledgeEntry(category=category, key=scoped_key, value=value)
             db.add(entry)
             action = "stored"
 
@@ -69,12 +73,18 @@ async def remember(category: str = "", key: str = "", value: str = "") -> dict:
     category="system",
 )
 async def recall(category: str = "", key: str = "") -> dict:
+    from app.agents.workspace import workspace_manager
+    prefix = workspace_manager.get_memory_prefix()
+
     async with async_session() as db:
         query = select(KnowledgeEntry)
         if category:
             query = query.where(KnowledgeEntry.category == category)
         if key:
-            query = query.where(KnowledgeEntry.key == key)
+            scoped_key = f"{prefix}{key}" if prefix else key
+            query = query.where(KnowledgeEntry.key == scoped_key)
+        elif prefix:
+            query = query.where(KnowledgeEntry.key.startswith(prefix))
         query = query.order_by(KnowledgeEntry.category, KnowledgeEntry.key)
 
         result = await db.execute(query)
@@ -86,7 +96,7 @@ async def recall(category: str = "", key: str = "") -> dict:
         return {
             "count": len(entries),
             "entries": [
-                {"category": e.category, "key": e.key, "value": e.value, "updated": e.updated_at.isoformat()}
+                {"category": e.category, "key": e.key.removeprefix(prefix), "value": e.value, "updated": e.updated_at.isoformat()}
                 for e in entries
             ],
         }

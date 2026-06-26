@@ -10,8 +10,12 @@ logger = logging.getLogger(__name__)
 
 
 def _get_wp_defaults() -> tuple[str, str, str]:
-    s = get_settings()
-    return s.wp_url, s.wp_user, s.wp_password
+    try:
+        from app.agents.workspace import workspace_manager
+        return workspace_manager.get_wp_credentials()
+    except Exception:
+        s = get_settings()
+        return s.wp_url, s.wp_user, s.wp_password
 
 
 def _resolve(wp_url: str = "", wp_user: str = "", wp_password: str = "") -> tuple[str, str, str]:

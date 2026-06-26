@@ -81,6 +81,19 @@ async def _build_system_prompt(user_message: str = "") -> str:
     except Exception:
         pass
 
+    try:
+        from app.agents.workspace import workspace_manager
+        ws = workspace_manager.active
+        if ws:
+            prompt += "\n" + ws.get_context_prompt()
+            prompt += "\nIMPORTANT: All actions are scoped to this workspace ONLY. Do not reference or modify any other workspace's content."
+        else:
+            workspaces = workspace_manager.list_all()
+            if workspaces:
+                prompt += f"\n\nWORKSPACES AVAILABLE: {', '.join(w['name'] for w in workspaces)}. Ask the user which workspace to work in, or suggest they switch with 'switch to [name]'."
+    except Exception:
+        pass
+
     return prompt
 
 
