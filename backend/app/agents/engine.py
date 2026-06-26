@@ -184,16 +184,50 @@ class AgentEngine:
                 pass
 
         except Exception as e:
-            logger.exception(f"Tool execution failed: {tool_name}")
-            execution.error = str(e)
-            execution.status = "failed"
+            logger.warning(f"Tool execution failed: {tool_name} - {e}. Attempting self-heal...")
             execution.duration_ms = int((time.monotonic() - start) * 1000)
+
+            try:
+                from app.agents.self_heal import self_heal_engine
+
+                quick = self_heal_engine.can_quick_fix(tool_name, str(e), arguments)
+                if quick:
+                    if quick.get("delay"):
+                        await asyncio.sleep(quick["delay"])
+                    try:
+                        retry_result = await registry.execute(quick["tool"], quick["arguments"])
+                        execution.result = retry_result if isinstance(retry_result, dict) else {"output": str(retry_result)}
+                        execution.result["_self_healed"] = True
+                        execution.result["_heal_reason"] = quick["reason"]
+                        execution.status = "completed"
+                        logger.info(f"Quick self-heal succeeded: {quick['reason']}")
+                        await self.db.flush()
+                        return execution
+                    except Exception:
+                        pass
+
+                heal_result = await self_heal_engine.diagnose_and_heal(tool_name, arguments, str(e))
+
+                if heal_result.get("healed"):
+                    execution.result = heal_result["result"]
+                    execution.result["_self_healed"] = True
+                    execution.result["_heal_explanation"] = heal_result.get("explanation", "")
+                    execution.status = "completed"
+                    logger.info(f"Self-heal succeeded: {heal_result.get('explanation', '')}")
+                else:
+                    execution.error = heal_result.get("explanation", str(e))
+                    execution.status = "failed"
+                    logger.info(f"Self-heal failed: {heal_result.get('diagnosis', '')}")
+            except Exception as heal_err:
+                logger.exception("Self-heal system error")
+                execution.error = str(e)
+                execution.status = "failed"
 
             try:
                 from app.agents.feedback import feedback_engine
                 asyncio.create_task(feedback_engine.evaluate_action(
                     tool_name, str(arguments)[:255],
-                    {"error": str(e), "status": "failed"}, conversation_id
+                    {"error": execution.error or str(e), "status": execution.status}, conversation_id
                 ))
             except Exception:
                 pass
