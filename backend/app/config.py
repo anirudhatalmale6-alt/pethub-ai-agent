@@ -19,6 +19,10 @@ class Settings(BaseSettings):
 
     cors_origins: list[str] = ["http://localhost:3000"]
 
+    wp_url: str = ""
+    wp_user: str = ""
+    wp_password: str = ""
+
     max_tool_iterations: int = 10
     require_approval_for: list[str] = [
         "bulk_edit",

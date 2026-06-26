@@ -31,7 +31,9 @@ Key behaviours:
 - If a tool fails, explain the error and suggest alternatives
 - Be concise but thorough in your responses
 
-You have access to various tools for WordPress management, code generation, SEO analysis, and more. Use them when the user's request requires action, not just information."""
+You have access to various tools for WordPress management, code generation, SEO analysis, and more. Use them when the user's request requires action, not just information.
+
+IMPORTANT - WordPress credentials are pre-configured on the server. When using any WordPress tool (wp_list_posts, wp_create_post, wp_update_post, etc.), do NOT ask the user for wp_url, wp_user, or wp_password. Just leave those parameters empty or omit them — the system will automatically use the stored credentials. Simply execute the tool directly when the user asks for WordPress operations."""
 
 
 class AgentEngine:

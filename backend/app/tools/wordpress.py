@@ -3,18 +3,24 @@ from typing import Any
 
 import httpx
 
+from app.config import get_settings
 from app.tools.registry import registry
 
 logger = logging.getLogger(__name__)
 
+
+def _get_wp_defaults() -> tuple[str, str, str]:
+    s = get_settings()
+    return s.wp_url, s.wp_user, s.wp_password
+
+
 WP_PARAMS = {
     "type": "object",
     "properties": {
-        "wp_url": {"type": "string", "description": "WordPress site URL (e.g. https://example.com)"},
-        "wp_user": {"type": "string", "description": "WordPress application password username"},
-        "wp_password": {"type": "string", "description": "WordPress application password"},
+        "wp_url": {"type": "string", "description": "WordPress site URL. Leave empty to use the pre-configured default.", "default": ""},
+        "wp_user": {"type": "string", "description": "WordPress username. Leave empty to use the pre-configured default.", "default": ""},
+        "wp_password": {"type": "string", "description": "WordPress password. Leave empty to use the pre-configured default.", "default": ""},
     },
-    "required": ["wp_url", "wp_user", "wp_password"],
 }
 
 
@@ -25,8 +31,14 @@ def _merge_params(base: dict, extra: dict) -> dict:
     return merged
 
 
+def _resolve_wp_creds(wp_url: str = "", wp_user: str = "", wp_password: str = "") -> tuple[str, str, str]:
+    defaults = _get_wp_defaults()
+    return (wp_url or defaults[0], wp_user or defaults[1], wp_password or defaults[2])
+
+
 async def _wp_request(method: str, wp_url: str, wp_user: str, wp_password: str,
                       endpoint: str, data: dict | None = None, params: dict | None = None) -> dict[str, Any]:
+    wp_url, wp_user, wp_password = _resolve_wp_creds(wp_url, wp_user, wp_password)
     url = f"{wp_url.rstrip('/')}/wp-json/{endpoint.lstrip('/')}"
     async with httpx.AsyncClient(timeout=30.0) as client:
         response = await client.request(
