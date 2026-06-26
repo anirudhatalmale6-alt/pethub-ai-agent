@@ -133,23 +133,31 @@ export default function ChatApp({ user, onLogout }: Props) {
           break;
 
         case "tool_result":
-          setToolEvents((prev) =>
-            prev.map((te) =>
-              te.tool_call_id === event.data.tool_call_id
-                ? { ...te, type: "tool_result", status: event.data.status, result: event.data.result }
-                : te
-            )
-          );
+          setToolEvents((prev) => {
+            const exists = prev.some((te) => te.tool_call_id === event.data.tool_call_id);
+            if (exists) {
+              return prev.map((te) =>
+                te.tool_call_id === event.data.tool_call_id
+                  ? { ...te, type: "tool_result", status: event.data.status, result: event.data.result }
+                  : te
+              );
+            }
+            return [...prev, { type: "tool_result", ...event.data }];
+          });
           break;
 
         case "tool_approval_required":
-          setToolEvents((prev) =>
-            prev.map((te) =>
-              te.tool_call_id === event.data.tool_call_id
-                ? { ...te, type: "tool_approval_required", ...event.data }
-                : te
-            )
-          );
+          setToolEvents((prev) => {
+            const exists = prev.some((te) => te.tool_call_id === event.data.tool_call_id);
+            if (exists) {
+              return prev.map((te) =>
+                te.tool_call_id === event.data.tool_call_id
+                  ? { ...te, type: "tool_approval_required", ...event.data }
+                  : te
+              );
+            }
+            return [...prev, { type: "tool_approval_required", ...event.data }];
+          });
           break;
 
         case "error":

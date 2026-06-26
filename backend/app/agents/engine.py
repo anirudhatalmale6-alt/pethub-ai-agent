@@ -56,14 +56,30 @@ class AgentEngine:
 
         messages = [{"role": "system", "content": SYSTEM_PROMPT}]
 
+        valid_tool_call_ids: set[str] = set()
+
         for msg in db_messages:
+            if msg.role == "tool":
+                if not msg.tool_call_id or msg.tool_call_id not in valid_tool_call_ids:
+                    continue
+                messages.append({
+                    "role": "tool",
+                    "content": msg.content or '{"status": "no result"}',
+                    "tool_call_id": msg.tool_call_id,
+                })
+                continue
+
             entry: dict[str, Any] = {"role": msg.role}
-            if msg.content:
-                entry["content"] = msg.content
-            if msg.tool_calls:
+            if msg.role == "assistant" and msg.tool_calls:
                 entry["tool_calls"] = msg.tool_calls
-            if msg.tool_call_id:
-                entry["tool_call_id"] = msg.tool_call_id
+                for tc in msg.tool_calls:
+                    if isinstance(tc, dict) and tc.get("id"):
+                        valid_tool_call_ids.add(tc["id"])
+                if msg.content:
+                    entry["content"] = msg.content
+            else:
+                entry["content"] = msg.content or ""
+
             messages.append(entry)
 
         return messages
