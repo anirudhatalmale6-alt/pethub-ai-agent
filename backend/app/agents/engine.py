@@ -73,6 +73,14 @@ async def _build_system_prompt(user_message: str = "") -> str:
     except Exception:
         pass
 
+    try:
+        from app.agents.autonomy import autonomy
+        prompt += f"\n\nAUTONOMY LEVEL: {autonomy.level} ({autonomy.level_name}) - {autonomy.level_description}"
+        if autonomy.level == 1:
+            prompt += "\nIMPORTANT: You are in SUGGEST ONLY mode. Explain what you would do but do NOT call any tools. Only provide recommendations."
+    except Exception:
+        pass
+
     return prompt
 
 
@@ -126,15 +134,8 @@ class AgentEngine:
         return messages
 
     def _check_approval_required(self, tool_name: str, arguments: dict) -> bool:
-        tool = registry.get(tool_name)
-        if not tool:
-            return False
-        if tool.requires_approval:
-            return True
-        action_type = arguments.get("action", "")
-        if action_type in self.settings.require_approval_for:
-            return True
-        return False
+        from app.agents.autonomy import autonomy
+        return autonomy.requires_approval(tool_name)
 
     async def _save_message(self, conversation_id: str, role: str, content: str | None = None,
                             tool_calls: list | None = None, tool_call_id: str | None = None) -> Message:
