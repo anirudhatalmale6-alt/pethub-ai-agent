@@ -193,6 +193,43 @@ export default function ChatApp({ user, onLogout }: Props) {
     });
   };
 
+  const sendFollowUp = (convId: string, message: string) => {
+    let assistantContent = "";
+    const assistantMsg: Message = { role: "assistant", content: "", isStreaming: true };
+    setMessages((prev) => [...prev, assistantMsg]);
+    setIsStreaming(true);
+
+    streamMessage(convId, message, (event) => {
+      switch (event.type) {
+        case "text_delta":
+          assistantContent += event.data.content;
+          setMessages((prev) => {
+            const updated = [...prev];
+            const last = updated[updated.length - 1];
+            if (last.role === "assistant") {
+              updated[updated.length - 1] = { ...last, content: assistantContent };
+            }
+            return updated;
+          });
+          break;
+        case "done":
+          setMessages((prev) => {
+            const updated = [...prev];
+            const last = updated[updated.length - 1];
+            if (last.role === "assistant") {
+              updated[updated.length - 1] = { ...last, isStreaming: false };
+            }
+            return updated;
+          });
+          setIsStreaming(false);
+          break;
+        case "error":
+          setIsStreaming(false);
+          break;
+      }
+    });
+  };
+
   const handleApproval = async (executionId: string, approved: boolean) => {
     try {
       const result = await approveToolExecution(executionId, approved);
@@ -204,6 +241,13 @@ export default function ChatApp({ user, onLogout }: Props) {
         )
       );
       setTimeout(() => setToolEvents([]), 3000);
+
+      if (activeConv) {
+        const statusText = approved
+          ? `The action was approved and ${result.status === "completed" ? "completed successfully" : "failed: " + (result.error || "unknown error")}. Please summarise what was done.`
+          : "The action was rejected by the user.";
+        sendFollowUp(activeConv, statusText);
+      }
     } catch (err) {
       console.error(err);
     }
