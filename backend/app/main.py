@@ -37,6 +37,12 @@ from app.tools import autonomy_tools as _auto  # noqa: F401
 from app.tools import workspace_tools as _ws  # noqa: F401
 from app.tools import site_crawler as _site  # noqa: F401
 from app.tools import evolution_tools as _evo  # noqa: F401
+from app.tools import content_writer as _cw  # noqa: F401
+from app.tools import internal_links as _il  # noqa: F401
+from app.tools import schema_markup as _sm  # noqa: F401
+from app.tools import competitor as _comp  # noqa: F401
+from app.tools import content_calendar as _cal  # noqa: F401
+from app.tools import image_gen as _img  # noqa: F401
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 
