@@ -229,11 +229,13 @@ export default function ChatApp({ user, onLogout }: Props) {
             return updated;
           });
           setIsStreaming(false);
-          setToolEvents((prev) => {
-            const hasPending = prev.some((te) => te.type === "tool_approval_required");
-            if (hasPending) return prev;
-            return [];
-          });
+          setTimeout(() => {
+            setToolEvents((prev) => {
+              const hasPending = prev.some((te) => te.type === "tool_approval_required" || te.type === "tool_start");
+              if (hasPending) return prev;
+              return [];
+            });
+          }, 1000);
           listConversations().then(setConversations);
           break;
       }
