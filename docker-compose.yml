@@ -65,6 +65,7 @@ services:
       - projects:/app/projects
       - evolution:/app/evolution
       - sitemaps:/app/sitemaps
+      - appconfig:/app/config
     depends_on:
       db:
         condition: service_healthy
@@ -121,3 +122,4 @@ volumes:
   projects:
   evolution:
   sitemaps:
+  appconfig:

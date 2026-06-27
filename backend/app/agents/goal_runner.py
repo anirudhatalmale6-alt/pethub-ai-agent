@@ -15,7 +15,7 @@ from app.tools.registry import registry
 
 logger = logging.getLogger(__name__)
 
-GOALS_FILE = os.environ.get("GOALS_FILE", "/app/goals.json")
+GOALS_FILE = os.environ.get("GOALS_FILE", "/app/config/goals.json")
 
 PLAN_PROMPT = """You are an autonomous goal-oriented agent. Given a goal, create a list of safe, read-only analysis tasks to work towards it.
 

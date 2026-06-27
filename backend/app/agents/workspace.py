@@ -6,7 +6,7 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-WORKSPACES_FILE = os.environ.get("WORKSPACES_FILE", "/app/workspaces.json")
+WORKSPACES_FILE = os.environ.get("WORKSPACES_FILE", "/app/config/workspaces.json")
 
 
 class Workspace:

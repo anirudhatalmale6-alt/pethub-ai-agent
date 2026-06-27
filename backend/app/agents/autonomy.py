@@ -5,7 +5,7 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-AUTONOMY_FILE = os.environ.get("AUTONOMY_FILE", "/app/autonomy.json")
+AUTONOMY_FILE = os.environ.get("AUTONOMY_FILE", "/app/config/autonomy.json")
 
 LEVELS = {
     1: {
