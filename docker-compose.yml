@@ -63,6 +63,8 @@ services:
       - plugins:/app/plugins
       - connectors:/app/connectors
       - projects:/app/projects
+      - evolution:/app/evolution
+      - sitemaps:/app/sitemaps
     depends_on:
       db:
         condition: service_healthy
@@ -117,3 +119,5 @@ volumes:
   plugins:
   connectors:
   projects:
+  evolution:
+  sitemaps:

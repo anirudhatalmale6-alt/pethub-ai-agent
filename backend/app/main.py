@@ -36,6 +36,7 @@ from app.tools import observability_tools as _obs  # noqa: F401
 from app.tools import autonomy_tools as _auto  # noqa: F401
 from app.tools import workspace_tools as _ws  # noqa: F401
 from app.tools import site_crawler as _site  # noqa: F401
+from app.tools import evolution_tools as _evo  # noqa: F401
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 

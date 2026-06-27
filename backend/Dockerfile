@@ -19,7 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN playwright install chromium
 
 # Create directories for generated assets
-RUN mkdir -p /app/screenshots /app/plugins /app/uploads /app/connectors /app/projects
+RUN mkdir -p /app/screenshots /app/plugins /app/uploads /app/connectors /app/projects /app/evolution/sandbox /app/evolution/active /app/evolution/archive /app/sitemaps
 
 COPY . .
 
