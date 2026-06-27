@@ -116,12 +116,15 @@ Contributors, tags, requires at least, tested up to, stable tag, license
         zf.write(plugin_file, f"{plugin_name}/{plugin_name}.php")
         zf.write(readme_file, f"{plugin_name}/readme.txt")
 
+    zip_filename = f"{plugin_name}.zip"
+    zip_size = round(os.path.getsize(zip_path) / 1024, 1)
     return {
         "plugin_name": plugin_name,
         "files": [f"{plugin_name}/{plugin_name}.php", f"{plugin_name}/readme.txt"],
         "zip_path": zip_path,
-        "zip_size_kb": round(os.path.getsize(zip_path) / 1024, 1),
-        "message": f"Plugin '{plugin_name}' generated successfully. Ready for deployment.",
+        "zip_size_kb": zip_size,
+        "download_link": f"[Download {zip_filename} ({zip_size} KB)](/api/download/{zip_filename})",
+        "message": f"Plugin '{plugin_name}' generated. Download: [Download {zip_filename}](/api/download/{zip_filename})",
     }
 
 

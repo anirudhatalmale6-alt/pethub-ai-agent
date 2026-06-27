@@ -72,6 +72,7 @@ async def build_project(project_name: str = "") -> dict:
 
     result = await project_builder.build_project(spec)
 
+    zip_filename = os.path.basename(result["zip_path"])
     return {
         "project_name": result["project_name"],
         "files_generated": result["file_count"],
@@ -79,8 +80,10 @@ async def build_project(project_name: str = "") -> dict:
         "zip_path": result["zip_path"],
         "zip_size_kb": result["zip_size_kb"],
         "project_dir": result["project_dir"],
-        "message": f"Project '{project_name}' generated with {result['file_count']} files. Zip ready at {result['zip_path']}.",
+        "download_link": f"[Download {zip_filename} ({result['zip_size_kb']} KB)](/api/download/{zip_filename})",
+        "message": f"Project '{project_name}' generated with {result['file_count']} files.",
         "next_steps": [
+            f"Download the project: [Download {zip_filename}](/api/download/{zip_filename})",
             "Review the generated code",
             "Push to a GitHub repository",
             "Deploy with Docker: docker compose up -d",
