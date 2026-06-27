@@ -118,31 +118,47 @@ class AgentEngine:
         system_prompt = await _build_system_prompt(user_message)
         messages = [{"role": "system", "content": system_prompt}]
 
-        valid_tool_call_ids: set[str] = set()
+        tool_response_ids: set[str] = set()
+        for msg in db_messages:
+            if msg.role == "tool" and msg.tool_call_id:
+                tool_response_ids.add(msg.tool_call_id)
+
+        pending_tool_responses: list[dict] = []
 
         for msg in db_messages:
             if msg.role == "tool":
-                if not msg.tool_call_id or msg.tool_call_id not in valid_tool_call_ids:
-                    continue
-                messages.append({
-                    "role": "tool",
-                    "content": msg.content or '{"status": "no result"}',
-                    "tool_call_id": msg.tool_call_id,
-                })
+                if msg.tool_call_id:
+                    pending_tool_responses.append({
+                        "role": "tool",
+                        "content": msg.content or '{"status": "no result"}',
+                        "tool_call_id": msg.tool_call_id,
+                    })
                 continue
+
+            if pending_tool_responses:
+                messages.extend(pending_tool_responses)
+                pending_tool_responses = []
 
             entry: dict[str, Any] = {"role": msg.role}
             if msg.role == "assistant" and msg.tool_calls:
-                entry["tool_calls"] = msg.tool_calls
-                for tc in msg.tool_calls:
-                    if isinstance(tc, dict) and tc.get("id"):
-                        valid_tool_call_ids.add(tc["id"])
-                if msg.content:
-                    entry["content"] = msg.content
+                has_all_responses = all(
+                    tc.get("id") in tool_response_ids
+                    for tc in msg.tool_calls
+                    if isinstance(tc, dict) and tc.get("id")
+                )
+                if has_all_responses:
+                    entry["tool_calls"] = msg.tool_calls
+                    if msg.content:
+                        entry["content"] = msg.content
+                else:
+                    entry["content"] = msg.content or "(Tool execution was interrupted)"
             else:
                 entry["content"] = msg.content or ""
 
             messages.append(entry)
+
+        if pending_tool_responses:
+            messages.extend(pending_tool_responses)
 
         return messages
 
