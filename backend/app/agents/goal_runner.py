@@ -68,6 +68,8 @@ SAFE_TOOLS = {
     "ml_subscriber_stats", "ml_list_groups", "amazon_search",
     "recall", "get_improvement_tips", "performance_report",
     "evaluate_content", "check_job_status", "list_connectors", "list_projects",
+    "crawl_site", "site_health_audit", "get_site_urls", "visual_site_check",
+    "list_workspaces", "get_autonomy_status", "system_intelligence", "tool_health_check",
 }
 
 

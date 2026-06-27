@@ -43,7 +43,8 @@ READ_ONLY_TOOLS = {
     "recall", "get_improvement_tips", "performance_report", "evaluate_content",
     "check_job_status", "list_connectors", "list_projects", "list_goals",
     "get_goal_digest", "system_intelligence", "tool_health_check",
-    "design_project",
+    "design_project", "crawl_site", "site_health_audit", "get_site_urls",
+    "visual_site_check", "list_workspaces", "get_autonomy_status",
 }
 
 LOW_RISK_WRITE_TOOLS = {
