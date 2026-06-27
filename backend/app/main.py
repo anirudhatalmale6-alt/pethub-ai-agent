@@ -13,6 +13,7 @@ from app.routes import approvals as approvals_router
 from app.routes import files as files_router
 from app.routes import knowledge as knowledge_router
 from app.routes import monitoring as monitoring_router
+from app.routes import workspaces as workspaces_router
 from app.tasks.queue import task_queue
 from app.tasks.handlers import register_handlers
 from app.middleware.rate_limit import RateLimitMiddleware
@@ -79,6 +80,7 @@ application.include_router(approvals_router.router)
 application.include_router(files_router.router)
 application.include_router(knowledge_router.router)
 application.include_router(monitoring_router.router)
+application.include_router(workspaces_router.router)
 
 
 @application.get("/api/health")

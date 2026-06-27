@@ -8,6 +8,9 @@ import {
   deleteConversation,
   approveToolExecution,
   streamMessage,
+  listWorkspaces,
+  createWorkspace,
+  switchWorkspace,
 } from "@/lib/api";
 import ReactMarkdown from "react-markdown";
 
@@ -44,6 +47,11 @@ export default function ChatApp({ user, onLogout }: Props) {
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [workspaces, setWorkspaces] = useState<any[]>([]);
+  const [activeWorkspace, setActiveWorkspace] = useState<any>(null);
+  const [showWsPanel, setShowWsPanel] = useState(false);
+  const [showNewWs, setShowNewWs] = useState(false);
+  const [newWs, setNewWs] = useState({ name: "", domain: "", wp_user: "", wp_password: "", affiliate_tag: "" });
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -53,9 +61,48 @@ export default function ChatApp({ user, onLogout }: Props) {
 
   useEffect(() => { scrollToBottom(); }, [messages, scrollToBottom]);
 
+  const loadWorkspaces = useCallback(async () => {
+    try {
+      const data = await listWorkspaces();
+      setWorkspaces(data.workspaces || []);
+      setActiveWorkspace(data.active);
+    } catch {}
+  }, []);
+
   useEffect(() => {
     listConversations().then(setConversations).catch(console.error);
-  }, []);
+    loadWorkspaces();
+  }, [loadWorkspaces]);
+
+  const handleSwitchWorkspace = async (id: string) => {
+    try {
+      const result = await switchWorkspace(id);
+      setActiveWorkspace({ id: result.id, name: result.name, domain: result.domain });
+      setShowWsPanel(false);
+      loadWorkspaces();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleCreateWorkspace = async () => {
+    if (!newWs.name || !newWs.domain) return;
+    try {
+      await createWorkspace({
+        name: newWs.name,
+        domain: newWs.domain,
+        wp_url: `https://${newWs.domain}`,
+        wp_user: newWs.wp_user,
+        wp_password: newWs.wp_password,
+        affiliate_tag: newWs.affiliate_tag,
+      });
+      setNewWs({ name: "", domain: "", wp_user: "", wp_password: "", affiliate_tag: "" });
+      setShowNewWs(false);
+      loadWorkspaces();
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const loadMessages = async (convId: string) => {
     setActiveConv(convId);
@@ -313,6 +360,60 @@ export default function ChatApp({ user, onLogout }: Props) {
             </div>
             <span className="font-semibold text-white text-sm">PetHub AI Agent</span>
           </div>
+
+          {/* Workspace Switcher */}
+          <div className="relative ml-2">
+            <button onClick={() => setShowWsPanel(!showWsPanel)} className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-900 border border-surface-200/10 rounded-lg text-xs hover:border-brand-500/50 transition">
+              <div className="w-2 h-2 rounded-full bg-green-400" />
+              <span className="text-surface-300">{activeWorkspace?.name || "No workspace"}</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-surface-300"><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+
+            {showWsPanel && (
+              <div className="absolute top-10 left-0 w-72 bg-surface-900 border border-surface-200/10 rounded-xl shadow-xl z-50 overflow-hidden">
+                <div className="p-3 border-b border-surface-200/5">
+                  <div className="text-xs font-semibold text-surface-300 uppercase tracking-wider">Workspaces</div>
+                </div>
+                <div className="max-h-48 overflow-y-auto">
+                  {workspaces.map((ws: any) => (
+                    <button
+                      key={ws.id}
+                      onClick={() => handleSwitchWorkspace(ws.id)}
+                      className={`w-full text-left px-3 py-2.5 flex items-center gap-2 text-sm hover:bg-surface-200/5 transition ${ws.active ? "text-brand-500" : "text-surface-300"}`}
+                    >
+                      <div className={`w-2 h-2 rounded-full ${ws.active ? "bg-green-400" : "bg-surface-300/30"}`} />
+                      <div className="flex-1">
+                        <div className="font-medium">{ws.name}</div>
+                        <div className="text-xs text-surface-300/60">{ws.domain}</div>
+                      </div>
+                      {ws.active && <span className="text-[10px] bg-green-400/10 text-green-400 px-1.5 py-0.5 rounded">Active</span>}
+                    </button>
+                  ))}
+                </div>
+                <div className="p-2 border-t border-surface-200/5">
+                  {!showNewWs ? (
+                    <button onClick={() => setShowNewWs(true)} className="w-full px-3 py-2 text-xs text-brand-500 hover:bg-brand-500/5 rounded-lg transition flex items-center gap-1.5">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                      New Workspace
+                    </button>
+                  ) : (
+                    <div className="p-2 space-y-2">
+                      <input placeholder="Name (e.g. My Blog)" value={newWs.name} onChange={(e) => setNewWs({...newWs, name: e.target.value})} className="w-full px-2.5 py-1.5 bg-surface-950 border border-surface-200/10 rounded text-xs text-white placeholder:text-surface-300/50" />
+                      <input placeholder="Domain (e.g. mysite.com)" value={newWs.domain} onChange={(e) => setNewWs({...newWs, domain: e.target.value})} className="w-full px-2.5 py-1.5 bg-surface-950 border border-surface-200/10 rounded text-xs text-white placeholder:text-surface-300/50" />
+                      <input placeholder="WP Username (optional)" value={newWs.wp_user} onChange={(e) => setNewWs({...newWs, wp_user: e.target.value})} className="w-full px-2.5 py-1.5 bg-surface-950 border border-surface-200/10 rounded text-xs text-white placeholder:text-surface-300/50" />
+                      <input placeholder="WP App Password (optional)" type="password" value={newWs.wp_password} onChange={(e) => setNewWs({...newWs, wp_password: e.target.value})} className="w-full px-2.5 py-1.5 bg-surface-950 border border-surface-200/10 rounded text-xs text-white placeholder:text-surface-300/50" />
+                      <input placeholder="Affiliate tag (optional)" value={newWs.affiliate_tag} onChange={(e) => setNewWs({...newWs, affiliate_tag: e.target.value})} className="w-full px-2.5 py-1.5 bg-surface-950 border border-surface-200/10 rounded text-xs text-white placeholder:text-surface-300/50" />
+                      <div className="flex gap-1.5">
+                        <button onClick={handleCreateWorkspace} className="flex-1 px-2.5 py-1.5 bg-brand-500 hover:bg-brand-600 text-white rounded text-xs font-medium transition">Create</button>
+                        <button onClick={() => setShowNewWs(false)} className="px-2.5 py-1.5 bg-surface-950 text-surface-300 rounded text-xs transition">Cancel</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
           {isStreaming && (
             <div className="ml-auto flex items-center gap-1.5 text-xs text-brand-500">
               <div className="flex gap-0.5">
@@ -323,6 +424,7 @@ export default function ChatApp({ user, onLogout }: Props) {
               Processing
             </div>
           )}
+          <a href="/dashboard" className="ml-auto text-xs text-surface-300 hover:text-white transition">Dashboard</a>
         </div>
 
         {/* Messages */}

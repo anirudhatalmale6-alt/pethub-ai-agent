@@ -74,6 +74,22 @@ export async function approveToolExecution(executionId: string, approved: boolea
   });
 }
 
+export async function listWorkspaces() {
+  return apiFetch("/api/workspaces");
+}
+
+export async function createWorkspace(data: { name: string; domain: string; wp_url?: string; wp_user?: string; wp_password?: string; description?: string; affiliate_tag?: string }) {
+  return apiFetch("/api/workspaces", { method: "POST", body: JSON.stringify(data) });
+}
+
+export async function switchWorkspace(workspace: string) {
+  return apiFetch("/api/workspaces/switch", { method: "POST", body: JSON.stringify({ workspace }) });
+}
+
+export async function deleteWorkspace(id: string) {
+  return apiFetch(`/api/workspaces/${id}`, { method: "DELETE" });
+}
+
 export function streamMessage(conversationId: string, message: string, onEvent: (event: { type: string; data: any }) => void) {
   const token = getToken();
   const url = `${API_URL}/api/chat/conversations/${conversationId}/messages`;
