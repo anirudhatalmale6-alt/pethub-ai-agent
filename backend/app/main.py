@@ -14,6 +14,7 @@ from app.routes import files as files_router
 from app.routes import knowledge as knowledge_router
 from app.routes import monitoring as monitoring_router
 from app.routes import workspaces as workspaces_router
+from app.routes import download as download_router
 from app.tasks.queue import task_queue
 from app.tasks.handlers import register_handlers
 from app.middleware.rate_limit import RateLimitMiddleware
@@ -43,6 +44,7 @@ from app.tools import schema_markup as _sm  # noqa: F401
 from app.tools import competitor as _comp  # noqa: F401
 from app.tools import content_calendar as _cal  # noqa: F401
 from app.tools import image_gen as _img  # noqa: F401
+from app.tools import file_share as _fs  # noqa: F401
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 
@@ -88,6 +90,7 @@ application.include_router(files_router.router)
 application.include_router(knowledge_router.router)
 application.include_router(monitoring_router.router)
 application.include_router(workspaces_router.router)
+application.include_router(download_router.router)
 
 
 @application.get("/api/health")

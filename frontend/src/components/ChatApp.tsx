@@ -469,7 +469,35 @@ export default function ChatApp({ user, onLogout }: Props) {
                 }`}>
                   {msg.role === "assistant" ? (
                     <div className="prose prose-invert prose-sm max-w-none">
-                      <ReactMarkdown>{msg.content || ""}</ReactMarkdown>
+                      <ReactMarkdown components={{
+                        a: ({href, children}) => {
+                          if (href?.includes('/api/download/')) {
+                            const token = localStorage.getItem('token');
+                            const fullUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}${href}`;
+                            return (
+                              <a
+                                href="#"
+                                onClick={async (e) => {
+                                  e.preventDefault();
+                                  const resp = await fetch(fullUrl, {headers: {Authorization: `Bearer ${token}`}});
+                                  const blob = await resp.blob();
+                                  const url = window.URL.createObjectURL(blob);
+                                  const a = document.createElement('a');
+                                  a.href = url;
+                                  a.download = href.split('/').pop() || 'download';
+                                  a.click();
+                                  window.URL.revokeObjectURL(url);
+                                }}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand-500 hover:bg-brand-600 text-white no-underline rounded-lg text-xs font-medium transition cursor-pointer"
+                              >
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                {children}
+                              </a>
+                            );
+                          }
+                          return <a href={href} target="_blank" rel="noopener">{children}</a>;
+                        }
+                      }}>{msg.content || ""}</ReactMarkdown>
                       {msg.isStreaming && <span className="inline-block w-2 h-4 bg-brand-500 animate-pulse ml-0.5" />}
                     </div>
                   ) : (
