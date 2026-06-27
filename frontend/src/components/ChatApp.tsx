@@ -534,13 +534,13 @@ export default function ChatApp({ user, onLogout }: Props) {
                     </pre>
                     <div className="flex gap-2">
                       <button
-                        onClick={() => handleApproval(te.execution_id!, true)}
-                        className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-md font-medium transition"
+                        onClick={(e) => { (e.target as HTMLButtonElement).disabled = true; handleApproval(te.execution_id!, true); }}
+                        className="px-3 py-1.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-md font-medium transition"
                       >
                         Approve
                       </button>
                       <button
-                        onClick={() => handleApproval(te.execution_id!, false)}
+                        onClick={(e) => { (e.target as HTMLButtonElement).disabled = true; handleApproval(te.execution_id!, false); }}
                         className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-md font-medium transition"
                       >
                         Reject

@@ -162,7 +162,7 @@ async def approve_tool_execution(
         raise HTTPException(status_code=404, detail="Execution not found")
 
     if execution.status != "awaiting_approval":
-        raise HTTPException(status_code=400, detail="Execution is not awaiting approval")
+        return {"status": execution.status, "result": execution.result, "error": execution.error, "already_processed": True}
 
     if req.approved:
         execution.status = "executing"
